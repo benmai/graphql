@@ -651,12 +651,32 @@ func resolveField(eCtx *executionContext, parentType *Object, source interface{}
 	})
 
 	if resolveFnError != nil {
-		panic(resolveFnError)
+		extErrs = resolveFieldFinishFn(result, resolveFnError)
+		if len(extErrs) != 0 {
+			eCtx.Errors = append(eCtx.Errors, extErrs...)
+		}
+
+		if resolveFnError != nil {
+			panic(resolveFnError)
+		}
 	}
 
-	extErrs = resolveFieldFinishFn(result, resolveFnError)
-	if len(extErrs) != 0 {
-		eCtx.Errors = append(eCtx.Errors, extErrs...)
+	if fn, isAsyncReturn := result.(func() (interface{}, error)); isAsyncReturn {
+		result = func() (interface{}, error) {
+			// TODO handle panics
+			value, err := fn()
+			extErrs := resolveFieldFinishFn(value, err)
+			if len(extErrs) != 0 {
+				eCtx.Errors = append(eCtx.Errors, extErrs...)
+			}
+
+			return value, err
+		}
+	} else {
+		extErrs = resolveFieldFinishFn(result, resolveFnError)
+		if len(extErrs) != 0 {
+			eCtx.Errors = append(eCtx.Errors, extErrs...)
+		}
 	}
 
 	completed := completeValueCatchingError(eCtx, returnType, fieldASTs, info, path, result)

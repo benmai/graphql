@@ -389,11 +389,11 @@ func TestExtensionResolveFieldFinish(t *testing.T) {
 	}
 
 	// Check value return.
-	is := is.New(t)
+	is := is.NewRelaxed(t)
 	is.Equal(expected.Data, result.Data)
 	is.True(testutil.EqualFormattedErrors(expected.Errors, result.Errors))
 
-	// Check that mock was called with the right arguments.
+	// Check that ResolveFieldDidStart was called for each field.
 	calls := ext.ResolveFieldDidStartCalls()
 	is.Equal(4, len(calls))
 	for _, fieldName := range []string{
@@ -411,7 +411,7 @@ func TestExtensionResolveFieldFinish(t *testing.T) {
 		is.True(found)
 	}
 
-	// TODO test calls to the returned function
+	// Check that ResolveFieldFinishFunc was called for each field.
 	sort.Slice(mockResolveFieldFinishFuncCalls, func(i, j int) bool {
 		return mockResolveFieldFinishFuncCalls[i].fieldName < mockResolveFieldFinishFuncCalls[j].fieldName
 	})
@@ -419,15 +419,19 @@ func TestExtensionResolveFieldFinish(t *testing.T) {
 	expectedCalls := []resolveFieldFinishCall{
 		{
 			fieldName: "asyncValue",
+			value:     "asyncValue value",
 		},
 		{
 			fieldName: "asyncValueError",
+			err:       errors.New("asyncValueError error"),
 		},
 		{
 			fieldName: "syncValue",
+			value:     "syncValue value",
 		},
 		{
 			fieldName: "syncValueError",
+			err:       errors.New("syncValueError error"),
 		},
 	}
 
